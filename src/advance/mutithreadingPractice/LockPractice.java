@@ -41,7 +41,10 @@ class ConcurrentStackWithLocker <T> {
         System.out.println("Trying to push : " + element);
         try {
             locker.lock();
-            while (isFull()) waitPop.await(); // Wait for a pop operation
+            while (isFull()) {
+                System.out.println("pushing is waiting.....");
+                waitPop.await();
+            } // Wait for a pop operation
 
             System.out.println("Push : index=" + lastPosition + " element=" + element);
             items[lastPosition++] = element;
@@ -57,12 +60,15 @@ class ConcurrentStackWithLocker <T> {
         System.out.println("Trying to pop");
         try {
             locker.lock();
-            while (isEmpty()) waitPush.await();
+            while (isEmpty()) {
+                System.out.println("popping is waiting.....");
+                waitPush.await();
+            }
 
             --lastPosition;
             T item = (T)items[lastPosition];
             items[lastPosition] = null;
-
+            System.out.println("Pop : index=last element="+item);
             waitPop.signalAll();
             return item;
         } finally {
@@ -86,10 +92,9 @@ public class LockPractice {
 
         new Thread(() -> {
             try {
-                Thread.sleep(50); // Let's try to pop
+//                Thread.sleep(2000); // Let's try to pop
                 stackWithLocker.push(10);
                 stackWithLocker.push(20);
-
                 Thread.sleep(1000);
                 stackWithLocker.push(30);
             } catch (InterruptedException e) {
@@ -99,16 +104,14 @@ public class LockPractice {
 
         new Thread(() -> {
             try {
-                stackWithLocker.pop();
+//                stackWithLocker.pop();
+                stackWithLocker.push(40);
                 Thread.sleep(1000);
                 stackWithLocker.pop();
-                stackWithLocker.pop();
-                stackWithLocker.push(40);
+//                stackWithLocker.pop();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }).start();
-
-        stackWithLocker.display();
     }
 }
